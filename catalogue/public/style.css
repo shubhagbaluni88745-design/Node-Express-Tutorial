@@ -1,0 +1,159 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f1f3f8;
+  color: #1b1b2f;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+  max-width: 580px;
+  min-height: 100vh;
+}
+
+h1 {
+  color: #2e6f9e;
+  margin: 0 0 0.3rem;
+  font-size: 1.85rem;
+}
+
+.sub {
+  color: #5d6577;
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+.dish {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d6dae6;
+  border-left: 6px solid #1b998b;
+  border-radius: 10px;
+  padding: 0.8rem 1.1rem;
+  margin-bottom: 0.7rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+}
+
+.dish .name {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.dish .price {
+  color: #2e6f9e;
+  font-weight: 700;
+  margin-left: 1rem;
+  white-space: nowrap;
+}
+
+form {
+  background: #fff;
+  border: 1px solid #d6dae6;
+  border-left: 6px solid #e8541e;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 4%);
+}
+
+form h3 {
+  margin: 0 0 0.7rem;
+  color: #e8541e;
+  font-size: 1.15rem;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  border-color: #2e6f9e;
+}
+
+#name {
+  flex: 2 1 180px;
+}
+
+#price {
+  flex: 1 1 130px;
+}
+
+button {
+  padding: 0.55rem 1rem;
+  background: #2e6f9e;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: #24587e;
+}
+
+button:disabled {
+  background: #8aaec4;
+  cursor: not-allowed;
+}
+
+.loading {
+  color: #5d6577;
+  font-style: italic;
+  padding: 0.75rem 0;
+}
+
+.empty {
+  background: #fff;
+  border: 1px dashed #d6dae6;
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+  color: #5d6577;
+  font-style: italic;
+}
+
+.error-message {
+  color: #b71c1c;
+  background: #fde8e8;
+  border: 1px solid #f8b4b4;
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  body {
+    padding: 1.25rem 0.85rem;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #name, #price, button {
+    width: 100%;
+    flex: none;
+  }
+}

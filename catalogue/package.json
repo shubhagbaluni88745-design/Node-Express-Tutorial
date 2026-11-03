@@ -1,0 +1,20 @@
+{
+  "name": "campuseats-catalogue",
+  "version": "1.0.0",
+  "description": "CampusEats Catalogue - Node & Express Tutorial",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "express",
+    "rest-api",
+    "campuseats"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}

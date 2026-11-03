@@ -1,0 +1,13 @@
+{
+  "name": "node-express-tutorial",
+  "version": "1.0.0",
+  "description": "CS543 Web Services Tutorial 08 - CampusEats Catalogue",
+  "scripts": {
+    "start": "npm start --prefix catalogue",
+    "test": "npm test --prefix catalogue"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+

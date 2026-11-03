@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampusEats Catalogue</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>CampusEats Catalogue</h1>
+  <p class="sub">The menu &mdash; served by a REST API (Node + Express)</p>
+
+  <div id="error" class="error-message" style="display: none;"></div>
+
+  <div id="list">Loading&hellip;</div>
+
+  <form id="addForm">
+    <h3>Add a dish</h3>
+    <div class="form-row">
+      <input id="name" placeholder="Dish name" required>
+      <input id="price" type="number" placeholder="Price (rupees)" min="0">
+      <button id="submitBtn" type="submit">Add dish</button>
+    </div>
+  </form>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const formEl = document.getElementById('addForm');
+    const errorEl = document.getElementById('error');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function showError(msg) {
+      if (errorEl) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+      }
+    }
+
+    function clearError() {
+      if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 1. READ: GET /items, then draw the list
+    async function load() {
+      clearError();
+      listEl.innerHTML = '<div class="loading">Loading&hellip;</div>';
+
+      try {
+        const res = await fetch('/items');
+        if (!res.ok) {
+          throw new Error(`Failed to fetch dishes (HTTP ${res.status})`);
+        }
+        const items = await res.json();
+
+        if (!Array.isArray(items) || items.length === 0) {
+          listEl.innerHTML = '<div class="empty">No dishes in the catalogue yet. Add one below!</div>';
+          return;
+        }
+
+        listEl.innerHTML = items.map(i =>
+          `<div class="dish">` +
+          `<span class="name">${escapeHtml(i.name)}</span>` +
+          `<span class="price">&#8377;${i.price}</span>` +
+          `</div>`
+        ).join('');
+      } catch (err) {
+        listEl.innerHTML = '<div class="empty">Unable to load catalogue at this time.</div>';
+        showError(err.message || 'Error loading catalogue from server.');
+        console.error('Failed to load menu:', err);
+      }
+    }
+
+    // 2. WRITE: the form POSTs a new dish, then refreshes the list
+    formEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const nameInput = document.getElementById('name');
+      const priceInput = document.getElementById('price');
+      const name = nameInput.value.trim();
+      const price = priceInput.value;
+
+      if (!name) {
+        showError('Dish name is required');
+        return;
+      }
+
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch('/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, price })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error ? `Error: ${data.error}` : `Failed to add dish (HTTP ${res.status})`);
+          return;
+        }
+
+        formEl.reset();
+        await load();
+      } catch (err) {
+        showError('Network error: Could not reach server.');
+        console.error('Failed to add dish:', err);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>
