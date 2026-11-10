@@ -10,24 +10,91 @@
   <h1>CampusEats Catalogue</h1>
   <p class="sub">The menu &mdash; served by a REST API (Node + Express)</p>
 
+  <!-- Global Error Message Container -->
   <div id="error" class="error-message" style="display: none;"></div>
 
-  <div id="list">Loading&hellip;</div>
-
-  <form id="addForm">
-    <h3>Add a dish</h3>
-    <div class="form-row">
-      <input id="name" placeholder="Dish name" required>
-      <input id="price" type="number" placeholder="Price (rupees)" min="0">
-      <button id="submitBtn" type="submit">Add dish</button>
+  <!-- Authenticated User Status Bar -->
+  <div id="userBar" class="user-bar" style="display: none;">
+    <div class="user-info">
+      <span>Logged in as <strong id="userEmail">user@campus.edu</strong></span>
+      <span id="userRoleBadge" class="role-badge role-customer">customer</span>
     </div>
-  </form>
+    <button id="logoutBtn" class="btn-logout" type="button">Logout</button>
+  </div>
+
+  <!-- Login Section (Visible when not authenticated) -->
+  <div id="loginSection" class="card card-login">
+    <h3>Sign In</h3>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="loginEmail">Email Address</label>
+        <input id="loginEmail" type="email" placeholder="e.g. mealhub@campus.edu" required>
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" placeholder="Enter password" required>
+      </div>
+      <button id="loginBtn" type="submit">Sign In</button>
+    </form>
+
+    <div class="demo-logins">
+      <span style="font-size:0.8rem; color:#6b7280; width:100%;">Quick Demo Login:</span>
+      <button type="button" class="demo-btn" id="demoCustomerBtn">Customer (Asha)</button>
+      <button type="button" class="demo-btn" id="demoRestaurantBtn">Restaurant (MealHub)</button>
+    </div>
+  </div>
+
+  <!-- Catalogue Dishes Section -->
+  <div id="catalogueSection" style="display: none;">
+    <div id="list">Loading&hellip;</div>
+
+    <!-- Add Dish Form (Only shown for restaurant and admin roles) -->
+    <form id="addForm" style="display: none;">
+      <h3>Add a dish</h3>
+      <div class="form-row">
+        <input id="name" placeholder="Dish name" required>
+        <input id="price" type="number" placeholder="Price (rupees)" min="0">
+        <button id="submitBtn" type="submit">Add dish</button>
+      </div>
+    </form>
+
+    <!-- Notice for Customers (Role-based UI notification) -->
+    <div id="customerNotice" class="customer-notice" style="display: none;">
+      <strong>Note:</strong> You are logged in as a <strong>customer</strong>. The menu is view-only &mdash; only restaurant accounts can add new dishes.
+    </div>
+  </div>
 
   <script>
-    const listEl = document.getElementById('list');
-    const formEl = document.getElementById('addForm');
     const errorEl = document.getElementById('error');
+    const userBarEl = document.getElementById('userBar');
+    const userEmailEl = document.getElementById('userEmail');
+    const userRoleBadgeEl = document.getElementById('userRoleBadge');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const loginSectionEl = document.getElementById('loginSection');
+    const loginFormEl = document.getElementById('loginForm');
+    const loginEmailInput = document.getElementById('loginEmail');
+    const loginPasswordInput = document.getElementById('loginPassword');
+    const loginBtn = document.getElementById('loginBtn');
+
+    const catalogueSectionEl = document.getElementById('catalogueSection');
+    const listEl = document.getElementById('list');
+    const addFormEl = document.getElementById('addForm');
+    const customerNoticeEl = document.getElementById('customerNotice');
     const submitBtn = document.getElementById('submitBtn');
+
+    // Quick demo buttons
+    document.getElementById('demoCustomerBtn').addEventListener('click', () => {
+      loginEmailInput.value = 'asha@campus.edu';
+      loginPasswordInput.value = 'customer123';
+      loginFormEl.dispatchEvent(new Event('submit'));
+    });
+
+    document.getElementById('demoRestaurantBtn').addEventListener('click', () => {
+      loginEmailInput.value = 'mealhub@campus.edu';
+      loginPasswordInput.value = 'resto123';
+      loginFormEl.dispatchEvent(new Event('submit'));
+    });
 
     function showError(msg) {
       if (errorEl) {
@@ -49,20 +116,108 @@
       return div.innerHTML;
     }
 
-    // 1. READ: GET /items, then draw the list
-    async function load() {
+    // Decode JWT payload without external library
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getToken() {
+      return sessionStorage.getItem('token');
+    }
+
+    function setToken(token) {
+      sessionStorage.setItem('token', token);
+    }
+
+    function clearSession() {
+      sessionStorage.removeItem('token');
+      userBarEl.style.display = 'none';
+      catalogueSectionEl.style.display = 'none';
+      loginSectionEl.style.display = 'block';
+      addFormEl.style.display = 'none';
+      customerNoticeEl.style.display = 'none';
+      listEl.innerHTML = 'Loading&hellip;';
+    }
+
+    // Update UI based on authenticated session
+    function renderAuthState() {
+      const token = getToken();
+      if (!token) {
+        clearSession();
+        return;
+      }
+
+      const payload = parseJwt(token);
+      if (!payload || (payload.exp && payload.exp * 1000 < Date.now())) {
+        showError('Session expired. Please log in again.');
+        clearSession();
+        return;
+      }
+
+      // Show user session info
+      userEmailEl.textContent = payload.email || `User #${payload.sub}`;
+      const role = payload.role || 'customer';
+      userRoleBadgeEl.textContent = role;
+      userRoleBadgeEl.className = 'role-badge role-' + role;
+      userBarEl.style.display = 'flex';
+      loginSectionEl.style.display = 'none';
+      catalogueSectionEl.style.display = 'block';
+
+      // Role-based UI visibility: only restaurant and admin see the Add Dish form
+      if (role === 'restaurant' || role === 'admin') {
+        addFormEl.style.display = 'block';
+        customerNoticeEl.style.display = 'none';
+      } else {
+        addFormEl.style.display = 'none';
+        customerNoticeEl.style.display = 'block';
+      }
+
+      loadMenu();
+    }
+
+    // 1. READ: GET /items with Bearer Token
+    async function loadMenu() {
       clearError();
-      listEl.innerHTML = '<div class="loading">Loading&hellip;</div>';
+      listEl.innerHTML = '<div class="loading">Loading catalogue dishes&hellip;</div>';
+
+      const token = getToken();
+      if (!token) {
+        renderAuthState();
+        return;
+      }
 
       try {
-        const res = await fetch('/items');
-        if (!res.ok) {
-          throw new Error(`Failed to fetch dishes (HTTP ${res.status})`);
-        }
-        const items = await res.json();
+        const res = await fetch('/items', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
+        if (res.status === 401) {
+          showError('Invalid or expired session. Please log in again.');
+          clearSession();
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Failed to load menu (${res.status} ${res.statusText})`);
+        }
+
+        const items = await res.json();
         if (!Array.isArray(items) || items.length === 0) {
-          listEl.innerHTML = '<div class="empty">No dishes in the catalogue yet. Add one below!</div>';
+          listEl.innerHTML = '<div class="empty">No dishes found in the catalogue.</div>';
           return;
         }
 
@@ -74,15 +229,68 @@
         ).join('');
       } catch (err) {
         listEl.innerHTML = '<div class="empty">Unable to load catalogue at this time.</div>';
-        showError(err.message || 'Error loading catalogue from server.');
-        console.error('Failed to load menu:', err);
+        showError(err.message || 'Error communicating with server.');
+        console.error('Error fetching items:', err);
       }
     }
 
-    // 2. WRITE: the form POSTs a new dish, then refreshes the list
-    formEl.addEventListener('submit', async (e) => {
+    // 2. LOGIN: Authenticate and retrieve JWT
+    loginFormEl.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearError();
+
+      const email = loginEmailInput.value.trim();
+      const password = loginPasswordInput.value;
+
+      if (!email || !password) {
+        showError('Email and password are required.');
+        return;
+      }
+
+      loginBtn.disabled = true;
+
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error === 'bad login' ? 'Invalid email or password (HTTP 401)' : (data.error || 'Login failed'));
+          return;
+        }
+
+        setToken(data.token);
+        loginFormEl.reset();
+        renderAuthState();
+      } catch (err) {
+        showError('Network error: Could not reach server.');
+        console.error('Login error:', err);
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+
+    // 3. LOGOUT: Clear session
+    logoutBtn.addEventListener('click', () => {
+      clearError();
+      clearSession();
+    });
+
+    // 4. WRITE: Add a dish (Only for restaurant / admin)
+    addFormEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const token = getToken();
+      if (!token) {
+        showError('Authentication required to add a dish.');
+        renderAuthState();
+        return;
+      }
 
       const nameInput = document.getElementById('name');
       const priceInput = document.getElementById('price');
@@ -99,19 +307,33 @@
       try {
         const res = await fetch('/items', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ name, price })
         });
 
         const data = await res.json();
+
+        if (res.status === 403) {
+          showError('Forbidden: Only restaurants or administrators may add dishes.');
+          return;
+        }
+
+        if (res.status === 401) {
+          showError('Session expired. Please log in again.');
+          clearSession();
+          return;
+        }
 
         if (!res.ok) {
           showError(data.error ? `Error: ${data.error}` : `Failed to add dish (HTTP ${res.status})`);
           return;
         }
 
-        formEl.reset();
-        await load();
+        addFormEl.reset();
+        await loadMenu();
       } catch (err) {
         showError('Network error: Could not reach server.');
         console.error('Failed to add dish:', err);
@@ -120,7 +342,8 @@
       }
     });
 
-    load();
+    // Initialize application state
+    renderAuthState();
   </script>
 </body>
 </html>
